@@ -1,0 +1,54 @@
+library(edgeR)
+library(EnhancedVolcano)
+library(DESeq2)
+library(readxl)
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(pheatmap)
+library(dplyr)
+
+counts_old <- read.csv("C:/Users/vinisha/Documents/MEDINA/fc_mouse_old.csv",header=TRUE, stringsAsFactors = FALSE, check.names = FALSE, sep=",")
+row.names(counts_old)<- counts_old$Geneid
+counts_old <- counts_old[c(-1)]
+
+#mouse samples with first four being WT and next four being knockout gene
+group <- c(1,1,1,1,2,2,2,2)
+dgList <- DGEList(counts=counts_old, genes=rownames(counts_old), group=group)
+dgList$samples
+countsPerMillion <- cpm(dgList)
+countCheck <- countsPerMillion > 1
+keep <- which(rowSums(countCheck) >= 4 | rowSums(countCheck)<50)
+
+keep <- filterByExpr(dgList)
+dgList <- dgList[keep, , keep.lib.sizes=FALSE]
+keep <- filterByExpr(dgList, group=group)
+
+design <- model.matrix(~ colnames(counts_old) + group)
+keep <- filterByExpr(dgList, design)
+
+dgList <- dgList[keep,]
+
+summary(cpm(dgList)) 
+?calcNormFactors
+dgList <- calcNormFactors(dgList, method="TMM")
+
+plotMDS(dgList)
+
+impute.mean <- function(x) replace(x, is.na(x) | is.nan(x) | is.infinite(x), mean(x, na.rm = TRUE))
+losses <- apply(losses, 2, impute.mean)
+sum( apply( losses, 2, function(.) sum(is.infinite(.))) )
+met$Type<- factor(met$Type, levels = c("WT", "P154S"))
+
+dgList <- estimateGLMCommonDisp(dgList, design=group)
+dgList <- estimateGLMTrendedDisp(dgList, design=group)
+dgList <- estimateGLMTagwiseDisp(dgList, design=group)
+
+
+y <- estimateDisp(dgList)
+
+et <- exactTest(y)
+topTags(et)
+
+fit <- glmFit(y, design)
+lrt <- glmLRT(fit)
