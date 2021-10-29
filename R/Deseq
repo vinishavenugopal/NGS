@@ -1,1 +1,90 @@
+library(EnhancedVolcano)
+library(DESeq2)
+library(readxl)
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(pheatmap)
+library(dplyr)
 
+anno_old <- read.csv("~/anno_old.csv",header=TRUE, stringsAsFactors = FALSE, check.names = FALSE, sep=",")
+colnames(anno_old)[1]<- "Geneid"
+
+counts_tgen<- read.table("~/count_tgen.txt",header=TRUE, stringsAsFactors = FALSE,check.names = FALSE)
+counts_old <- read.csv("~/fc_mouse_old.csv",header=TRUE, stringsAsFactors = FALSE, check.names = FALSE, sep=",")
+counts_new <- read.csv("~fc_mouse_new.csv",header=TRUE, stringsAsFactors = FALSE, check.names = FALSE, sep=",")
+row.names(counts_old)<- counts_old$Geneid
+counts_old <- counts_old[c(-1)]
+
+met <- read.csv("~metadata.csv",header=TRUE, stringsAsFactors = FALSE, check.names = FALSE, sep=",")
+met$Type<- factor(met$Type, levels = c("WT", "P154S"))
+
+counts_old <- replace(counts_old, counts_old == 0, 1)
+counts_old <- round(counts_old)
+counts_tgen <- round(counts_tgen)
+
+counts_old <- counts_old[,c(met$SampleID)]
+all(met$SampleID %in% colnames(counts_old))
+
+counts_tgen<- counts_tgen[,c(met$SampleID)]
+all(met$SampleID %in% colnames(counts_tgen))
+
+
+dds<-DESeqDataSetFromMatrix(countData = counts_old, colData=met, design =~ Type)
+dds <- dds[rowMeans(counts(dds)) > 100,] #####gene abundance
+#keep <- rowSums(counts(dds)) >= 10
+#dds <- dds[keep,]
+
+dds <- estimateSizeFactors(dds)
+dds <- DESeq(dds)
+res <- results(dds, contrast=c("Type","WT","P154S"))
+res.out <- as.data.frame(res)
+
+plotMA(dds, alpha=0.5,ylim=c(-10,10), lfcThreshold = 0.5, colSig = "blue")
+dev.off()
+
+#plotting principal component analysis
+vsd <- vst(dds, blind=FALSE)
+pcaData <- plotPCA(vsd, intgroup= c("Type"), returnData=TRUE)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+ggplot(pcaData, aes(PC1, PC2, color= Type, label=name)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed()
+
+#significant counts
+res <- res[!is.na(res$pvalue),]
+resOrdered <- res[(res$pvalue < 0.05),]
+ressig <- resOrdered[(resOrdered$log2FoldChange < -1) | (resOrdered$log2FoldChange >1) ,]
+res_sort <- ressig[order(-abs(ressig$log2FoldChange)),]
+
+norm <- counts(dds, normalized=T)
+dds_rlog <- rlog(dds, blind=TRUE)
+
+res_first <- res_sort[1:50,]
+mat <- assay(dds_rlog[rownames(res_sort),])
+
+mat<- as.data.frame(mat)
+mat$Geneid <- row.names(mat)
+mat<- merge(mat,anno_old,by="Geneid")
+rownames(mat)<-mat$gene_name
+mat<- mat[-c(1,10,11)]
+
+#heatmap of significant genes
+library(pheatmap)
+pheatmap(mat, cluster_rows = TRUE, cluster_cols= TRUE, show_rownames = TRUE)
+pheatmap(mat, cluster_rows = TRUE, cluster_cols= TRUE, scale="row", show_rownames = TRUE)
+dev.off()
+
+ressig$Geneid<- rownames(ressig)
+res1<-as.data.frame(ressig)
+res1<- merge(res1,anno_old,by="Geneid")
+
+#volcano plot
+EnhancedVolcano(res,
+                lab = rownames(res),
+                x = 'log2FoldChange',
+                y = 'pvalue',
+                pCutoff = 0.05,
+                FCcutoff = 0.5)
