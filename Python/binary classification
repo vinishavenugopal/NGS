@@ -1,0 +1,231 @@
+import numpy as np
+import pandas as pd
+import os
+import pickle
+import warnings
+warnings.filterwarnings("ignore")
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn import svm
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+from google.colab import drive
+drive.mount("/content/drive/",force_remount=True)
+
+data_1=pd.read_csv("/content/drive/MyDrive/2021BioinfoFTE_ML_dat.csv")
+
+# Import label encoder
+from sklearn import preprocessing
+
+# label_encoder object knows how to understand word labels.
+label_encoder = preprocessing.LabelEncoder()
+
+# Encode labels in column 'species'.
+data_1['BM_label']= label_encoder.fit_transform(data_1['BM_label'])
+
+data_1['BM_label'].unique()
+
+data_1['Subtype_label']= label_encoder.fit_transform(data_1['Subtype_label'])
+
+data_1['Subtype_label'].unique()
+
+Y=data_1.iloc[:,1]
+X=data_1.drop(columns=["sampleid","BM_label","Subtype_label"])
+
+sensitivity_svm=[]
+specificity_svm=[]
+
+def svm_classifier(X_train, Y_train, X_test, Y_test):
+    
+    clf_svm=svm.SVC(kernel = 'linear')
+    clf_svm.fit(X_train,Y_train)
+    Y_pred_svm=clf_svm.predict(X_test)
+    tn, fp, fn, tp = confusion_matrix(list(Y_test), Y_pred_svm).ravel()
+    sensitivity = tp/(tp + fn)
+    specificity = tn/(tn + fp)
+    sensitivity_svm.append(sensitivity)
+    specificity_svm.append(specificity)
+    
+    return sensitivity_svm,specificity_svm
+    
+    skf = StratifiedKFold(n_splits=5)
+    
+for train_index,test_index in skf.split(X, Y):
+        X_train, X_test = X.iloc[train_index,:], X.iloc[test_index,:]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        sensitivity_svm,specificity_svm=svm_classifier(X_train,Y_train,X_test,Y_test)
+
+print("Sensitivity(svm):",np.mean(sensitivity_svm))
+print("Specificity(svm):",np.mean(specificity_svm))
+
+sensitivity_knn=[]
+specificity_knn=[]
+
+def knn_classifier(X_train, Y_train, X_test, Y_test):
+    
+    clf_knn = KNeighborsClassifier(n_neighbors=10, p=2)
+    clf_knn.fit(X_train, Y_train)
+    Y_pred_knn = clf_knn.predict(X_test)
+    
+    tn, fp, fn, tp = confusion_matrix(list(Y_test), Y_pred_knn).ravel()
+    sensitivity = tp/(tp + fn)
+    specificity = tn/(tn + fp)
+    sensitivity_knn.append(sensitivity)
+    specificity_knn.append(specificity)
+    
+    return sensitivity_knn,specificity_knn
+    
+    skf = StratifiedKFold(n_splits=5)
+    
+for train_index,test_index in skf.split(X, Y):
+        X_train, X_test = X.iloc[train_index,:], X.iloc[test_index,:]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        sensitivity_knn,specificity_knn=knn_classifier(X_train,Y_train,X_test,Y_test)
+
+print("Sensitivity(knn):",np.mean(sensitivity_knn))
+print("Specificity(knn):",np.mean(specificity_knn))
+
+sensitivity_rforest=[]
+specificity_rforest=[]
+def rforest_classifier(X_train, Y_train, X_test, Y_test):
+    
+    clf_rforest=RandomForestClassifier(n_estimators=1000)
+    clf_rforest.fit(X_train,Y_train)
+    Y_pred_rforest=clf_rforest.predict(X_test)
+
+    tn, fp, fn, tp = confusion_matrix(list(Y_test), Y_pred_rforest).ravel()
+    sensitivity = tp/(tp + fn)
+    specificity = tn/(tn + fp)
+    sensitivity_rforest.append(sensitivity)
+    specificity_rforest.append(specificity)
+  
+    
+    return sensitivity_rforest,specificity_rforest
+    
+    skf = StratifiedKFold(n_splits=5)
+    
+for train_index,test_index in skf.split(X, Y):
+        X_train, X_test = X.iloc[train_index,:], X.iloc[test_index,:]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        sensitivity_rforest,specificity_rforest=rforest_classifier(X_train,Y_train,X_test,Y_test)
+
+print("Sensitivity(rforest):",np.mean(sensitivity_rforest))
+print("Specificity(rforest):",np.mean(specificity_rforest))
+
+sensitivity_logr=[]
+specificity_logr=[]
+def logregression_classifier(X_train, Y_train, X_test, Y_test):
+    
+    clf_logr = LogisticRegression()
+    clf_logr.fit(X_train, Y_train)
+    Y_pred_logr = clf_logr.predict(X_test)
+    
+    tn, fp, fn, tp = confusion_matrix(list(Y_test), Y_pred_logr).ravel()
+    sensitivity = tp/(tp + fn)
+    specificity = tn/(tn + fp)
+    sensitivity_logr.append(sensitivity)
+    specificity_logr.append(specificity)
+  
+    
+    return sensitivity_logr,specificity_logr
+    
+    skf = StratifiedKFold(n_splits=5)
+    
+for train_index,test_index in skf.split(X, Y):
+        X_train, X_test = X.iloc[train_index,:], X.iloc[test_index,:]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        sensitivity_rlog,specificity_rlog=logregression_classifier(X_train,Y_train,X_test,Y_test)
+
+print("Sensitivity(rlog):",np.mean(sensitivity_rforest))
+print("Specificity(rlog):",np.mean(specificity_rforest))
+
+sensitivity_mlp=[]
+specificity_mlp=[]
+
+def MLP_classifier(X_train, Y_train, X_test, Y_test):
+  
+    mlp_clf = MLPClassifier(max_iter=500)
+
+    mlp_clf.fit(X_train, Y_train)
+    Y_pred_mlp = mlp_clf.predict(X_test)
+    
+    tn, fp, fn, tp = confusion_matrix(list(Y_test), Y_pred_mlp).ravel()
+    sensitivity = tp/(tp + fn)
+    specificity = tn/(tn + fp)
+    
+    sensitivity_mlp.append(sensitivity)
+    specificity_mlp.append(specificity)
+  
+    return sensitivity_mlp,specificity_mlp
+    skf = StratifiedKFold(n_splits=5)
+    
+for train_index,test_index in skf.split(X, Y):
+        X_train, X_test = X.iloc[train_index,:], X.iloc[test_index,:]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        sensitivity_mlp,specificity_mlp=MLP_classifier(X_train,Y_train,X_test,Y_test)
+
+print(np.mean(sensitivity_mlp))
+print(np.mean(specificity_mlp))
+
+#MLP showed higher sensitivity when compared to other algorithms. Hence it was fine tuned for better sensitivity.
+
+def MLP_param_tuning(X_train, Y_train):
+    
+    mlp_clf = MLPClassifier()
+    parameter_space = {
+    'max_iter': [100,200,500],
+    #'hidden_layer_sizes': [(10,30,10),(20,)],
+    'activation': ['tanh', 'relu'],
+    'solver': ['sgd', 'adam','lbfgs'],
+    'alpha': [0.0001, 0.05, 0.5],
+    'learning_rate': ['constant','adaptive'],
+    }
+    
+    clf = GridSearchCV(mlp_clf, parameter_space, n_jobs=-1,cv=5)
+    clf.fit(X_train, Y_train)
+    params = clf.best_params_
+
+    return params
+    def MLP_classifier_tuned(X_train, Y_train, X_test, Y_test, params):
+    
+    mlp_clf = MLPClassifier(**params)
+
+    mlp_clf.fit(X_train, Y_train)
+    Y_pred_mlp = mlp_clf.predict(X_test)
+    
+    tn, fp, fn, tp = confusion_matrix(list(Y_test), Y_pred_mlp).ravel()
+    sensitivity = tp/(tp + fn)
+    specificity = tn/(tn + fp)
+    precision=tp/(tp+fp)
+    
+    return sensitivity, specificity, precision
+    sensitivity_mlp_tuned=[]
+specificity_mlp_tuned=[]
+precision_mlp_tuned=[]
+
+params = MLP_param_tuning(X, Y)
+skf = StratifiedKFold(n_splits=5)
+
+for train_index,test_index in skf.split(X, Y):
+        X_train, X_test = X.iloc[train_index,:], X.iloc[test_index,:]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        sens, spec , prec= MLP_classifier_tuned(X_train,Y_train,X_test,Y_test, params)
+        sensitivity_mlp_tuned.append(sens)
+        specificity_mlp_tuned.append(spec)
+        precision_mlp_tuned.append(prec)
+
+sens=np.median(sensitivity_mlp_tuned)
+spec=np.median(specificity_mlp_tuned)
+prec=np.median(precision_mlp_tuned)
+
+print("Sensitivity:",sens)
+print("Specificity:",spec)
