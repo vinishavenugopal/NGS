@@ -1,0 +1,112 @@
+library(readr)
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(lme4)
+library(ggplot2)
+
+Discovery_MS_data<-read_excel("~/Linear_model/Discovery_cohort_MS.xlsx")
+
+fit1=lm(`SERPINA4 LFQ intensity`~`Months from first draw`+Progression,data=Discovery_MS_data)
+summary(fit1)
+
+ggplot(Discovery_MS_data,aes(x=`Months from first draw`,y=`SERPINA4 LFQ intensity`,group=Code,color=Progression))+geom_line(linetype=2,size=1)+geom_point()
+
+equation1=function(x){coef(fit1)[2]*x+coef(fit1)[1]}
+equation2=function(x){coef(fit1)[2]*x+coef(fit1)[1]+coef(fit1)[3]}
+
+ggplot(Discovery_MS_data,aes(y=`SERPINA4 LFQ intensity`,x=`Months from first draw`,group=Code,color=Progression))+geom_line(linetype=2)+
+  stat_function(fun=equation1,geom="line",size=1,color=scales::hue_pal()(2)[1])+
+  stat_function(fun=equation2,geom="line",size=1,color=scales::hue_pal()(2)[2])
+
+mixed.lmer <- lmer(`SERPINA4 LFQ intensity`~`Months from first draw`+Progression+(1|Sex), data = Discovery_MS_data)
+summary(mixed.lmer)
+
+plot(mixed.lmer)
+
+########
+set.seed(999)
+response <-  rnorm(200, 100, 50)
+
+set.seed(777)
+dev <- rnorm(response, 0, 50)
+
+DF <- data.frame(response = response) %>% 
+  +     mutate(pred = response + dev) %>% 
+  +     arrange(response) %>% 
+  +     mutate(factor = rep(LETTERS[1:4], each = 50)) 
+
+View(DF)
+ggplot(DF,(x = pred, y = response, colour = factor))
+
+PRED <- predict(mod.lm, type = "terms")
+Const <- attr(PRED,"constant")
+View(PRED)
+PRED.df <-  data.frame(y = PRED) %>% 
+  +     mutate(y.pred = y.pred + Const) %>% 
+  +     mutate(y.factor = y.factor + Const) %>% 
+  +     mutate(y.pred.factor = y.pred + y.factor + y.pred.factor - Const) %>% 
+  +     mutate(x = as.vector(DF$pred)) %>% 
+  +     mutate(factor = as.vector(DF$factor))
+View(PRED.df)
+
+#######
+
+fit1=lm(`RBP4 LFQ intensity`~`Months from first draw`+Progression,data=Discovery_MS_data)
+summary(fit1)
+
+ggplot(Discovery_MS_data,aes(x=`Months from first draw`,y=`RBP4 LFQ intensity`,group=Code,color=Progression))+geom_line(linetype=2,size=1)+geom_point()
+
+equation1=function(x){coef(fit1)[2]*x+coef(fit1)[1]}
+equation2=function(x){coef(fit1)[2]*x+coef(fit1)[1]+coef(fit1)[3]}
+
+ggplot(Discovery_MS_data,aes(y=`RBP4 LFQ intensity`,x=`Months from first draw`,group=Code,color=Progression))+geom_line(linetype=2)+
+  stat_function(fun=equation1,geom="line",size=1,color=scales::hue_pal()(2)[1])+
+  stat_function(fun=equation2,geom="line",size=1,color=scales::hue_pal()(2)[2])
+
+mixed.lmer <- lmer(`SERPINA4 LFQ intensity`~`Months from first draw`+Progression+(1|Sex), data = Discovery_MS_data)
+summary(mixed.lmer)
+
+plot(mixed.lmer)
+
+####
+fit1=lm(`RBP4 LFQ intensity`~`Months from first draw`,data=Discovery_MS_data)
+summary(fit1)
+
+ggplot(Discovery_MS_data,aes(x=`Months from first draw`,y=`RBP4 LFQ intensity`,group=Code,color=Progression))+geom_line(linetype=2,size=1)+geom_point()
+
+equation1=function(x){coef(fit1)[2]*x+coef(fit1)[1]}
+equation2=function(x){coef(fit1)[2]*x+coef(fit1)[1]+coef(fit1)[3]}
+
+ggplot(Discovery_MS_data,aes(y=`RBP4 LFQ intensity`,x=`Months from first draw`,group=Code,color=Progression))+geom_line(linetype=2)+
+  stat_function(fun=equation1,geom="line",size=1,color=scales::hue_pal()(2)[1])+
+  stat_function(fun=equation2,geom="line",size=1,color=scales::hue_pal()(2)[2])
+
+mixed.lmer <- lmer(`SERPINA4 LFQ intensity`~`Months from first draw`+Progression+(1|Sex), data = Discovery_MS_data)
+summary(mixed.lmer)
+
+plot(mixed.lmer)
+
+##fastvsslow
+
+dis_fast<-Discovery_MS_data[(Discovery_MS_data$Progression) %in% "Fast",]
+fit_fast=lm(`RBP4 LFQ intensity`~`Months from first draw`,data=dis_fast)
+summary(fit_fast)
+
+equation_fast=function(x){coef(fit_fast)[2]*x+coef(fit_fast)[1]}
+
+mixed.lmer <- lmer(`RBP4 LFQ intensity`~`Months from first draw`+(1|Sex), data = dis_fast)
+summary(mixed.lmer)
+
+dis_slow<-Discovery_MS_data[(Discovery_MS_data$Progression) %in% "Slow",]
+fit_slow=lm(`RBP4 LFQ intensity`~`Months from first draw`,data=dis_slow)
+summary(fit_slow)
+
+equation_slow=function(x){coef(fit_slow)[2]*x+coef(fit_slow)[1]}
+
+pdf("~/Linear_model/Discovery_MS_RBP4.pdf")
+ggplot(Discovery_MS_data,aes(y=`RBP4 LFQ intensity`,x=`Months from first draw`,group=Code,color=Progression))+geom_line(linetype=2)+geom_point()+
+  stat_function(fun=equation_fast,geom="line",size=1,color=scales::hue_pal()(2)[1])+
+  stat_function(fun=equation_slow,geom="line",size=1,color=scales::hue_pal()(2)[2])
+dev.off()
+
