@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH -n 48                                    # number of cores
+#SBATCH -t 0-00:30                               # wall time (D-HH:MM)                               # Account hours will be pulled from
+#SBATCH -A username
+#SBATCH --job-name=salmon
+#SBATCH -o /scratch/username/First_trial/Output/salmon.%j.out   # STDOUT (%j = JobId)
+#SBATCH -e /scratch/username/First_trial/Output/salmon.%j.err   # STDERR (%j = JobId)
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=username@gmail.com
+
+module purge
+
+module load salmon/1.1.0
+
+salmon index -p 48 -t /scratch/username/Homo_sapiens.GRCh37.75.cdna.all.fa.gz -i salmon_index
+
+salmon quant -p 48 -i /home/username/ondemand/data/sys/myjobs/projects/default/19/salmon_index -l A -1 /scratch/username/First_trial/Choroid_C9_ALS1_TAGCTT_R1_001_out.fastq.gz -2 /scratch/username/First_trial/Choroid_C9_ALS1_TAGCTT_R2_001_out.fastq.gz --validateMappings -o  /home/username/ondemand/data/sys/myjobs/projects/default/20/quants/C9_ALS1_quants
