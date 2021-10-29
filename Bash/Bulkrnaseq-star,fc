@@ -1,0 +1,54 @@
+#!/bin/bash
+#SBATCH -N 1 --exclusive
+#SBATCH -n 48                                    # number of cores
+#SBATCH -t 0-04:00                               # wall time (D-HH:MM)                               # Account hours will be pulled from
+#SBATCH -A username
+#SBATCH --job-name=STAR_fc_mouse_old
+#SBATCH -o /scratch/username/log_files/STAR_fc_mouse_old.%j.out   # STDOUT (%j = JobId)
+#SBATCH -e /scratch/username/log_files/STAR_fc_mouse_old.%j.err   # STDERR (%j = JobId)
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=username@gmail.com
+
+module purge
+
+module load star/2.7.9a
+module load subread/2.0.0
+
+cd /scratch/username/DAVID
+lis=$(ls *R1_001.fastq.gz)
+for file in $lis
+do base=${file%R1*}
+echo $base
+read1=/scratch/username/DAVID/${base}R1_001.fastq.gz
+read2=/scratch/username/DAVID/${base}R2_001.fastq.gz
+STAR --readFilesCommand zcat \
+--genomeDir /scratch/username/DAVID/index_old \
+--readFilesIn $read1 $read2 \
+--runThreadN 48 \
+--sjdbGTFfile /scratch/username/DAVID/index_old/Mus_musculus.GRCm38.79.gtf \
+--outFileNamePrefix /scratch/username/DAVID/output_old/${base} \
+--runMode alignReads \
+--outSAMtype BAM Unsorted \
+--outSAMmode Full \
+--outSAMstrandField intronMotif \
+--outFilterType BySJout \
+--outSAMunmapped Within \
+--outSAMmapqUnique 255 \
+--outFilterMultimapNmax 20 \
+--outFilterMismatchNmax 999 \
+--outFilterMismatchNoverLmax 0.1 \
+--alignMatesGapMax 1000000 \
+--seedSearchStartLmax 50 \
+--alignIntronMin 20 \
+--alignIntronMax 1000000 \
+--alignSJoverhangMin 18 \
+--alignSJDBoverhangMin 18 \
+--chimSegmentMin 18 \
+--chimJunctionOverhangMin 18 \
+--outSJfilterOverhangMin 18 18 18 18 \
+--alignTranscriptsPerReadNmax 50000 \
+--genomeLoad NoSharedMemory \
+--limitBAMsortRAM 9600000000 \
+
+featureCounts -p -T 48 -t exon -g gene_id -a /scratch/username/DAVID/index_old/Mus_musculus.GRCm38.79.gtf -s 2 -o /scratch/username/DAVID/output_old/fc_${base}.txt /scratch/username/DAVID/output_old/${base}Aligned.out.bam 
+done;
