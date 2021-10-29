@@ -1,0 +1,149 @@
+#@title
+%matplotlib inline
+import matplotlib.pyplot as plt #matpltlib is python 2D plotting which produces quality figures
+import matplotlib as mpl
+import numpy as np #library for supporting multidimensional arrays and matrices
+import pandas as pd
+import requests
+import os #to get data from your desktop
+import urllib #to import data from any url
+import csv
+import re
+import seaborn as sns
+import math
+
+from google.colab import drive
+drive.mount("/content/drive/",force_remount=True)
+
+exp=pd.read_csv("/content/drive/MyDrive/Motor_cortex/txi_motor_cortex_combined.csv");
+nexp=pd.read_csv("/content/drive/MyDrive/Motor_cortex/ncount.csv");
+vstexp=pd.read_csv("/content/drive/MyDrive/Motor_cortex/vsdcount.csv");
+rlogexp=pd.read_csv("/content/drive/MyDrive/Motor_cortex/rlog_MC_combined.csv");
+
+nexp= nexp.rename(columns={'Unnamed: 0': 'gene'})
+vstexp = vstexp.rename(columns={'Unnamed: 0': 'gene'})
+rlogexp = rlogexp.rename(columns={'Unnamed: 0': 'gene'})
+
+metadata=pd.read_csv("/content/drive/MyDrive/Motor_cortex/metadata_motor_cortex.csv");
+
+metadata=pd.read_csv("/content/drive/MyDrive/Motor_cortex/metadata_motor_cortex.csv");
+#gene ID-nexp
+gene_Exp=nexp.loc[nexp['gene'] == 'ENSG00000155636']
+RBM45=gene_Exp.T
+RBM45.columns= RBM45.iloc[0]
+RBM45=RBM45.drop(['gene'])
+
+RBM45=RBM45.reset_index()
+RBM45.columns=['ExternalSampleId', 'ENSG00000155636'];
+
+df=pd.merge(RBM45,met, how="outer", on="ExternalSampleId")
+df.loc[df['Age at Death'] <= "55", 'Age-class'] = '<=55' 
+df.loc[(df['Age at Death'] > "55") & (df['Age at Death'] < "60"), 'Age-class'] = '55-60'
+df.loc[(df['Age at Death'] > "60") & (df['Age at Death'] < "65"), 'Age-class'] = '60-65' 
+df.loc[(df['Age at Death'] > "65") & (df['Age at Death'] < "70"), 'Age-class'] = '65-70' 
+df.loc[df['Age at Death'] >= "70", 'Age-class'] = '>=70'
+
+df_ALS_HC=df[(df["Final Subject Group - Bowser lab defined"] == "ALS")|(df["Final Subject Group - Bowser lab defined"] == "Non-Neurologic Control")]
+df_ALS=df[df["Final Subject Group - Bowser lab defined"] == "ALS"]
+df_HC=df[df["Final Subject Group - Bowser lab defined"] == "Non-Neurological Control"]
+df_onset = df_ALS[(df_ALS["Site of Motor Onset"] != "Unknown")&(df_ALS["Site of Motor Onset"] != "Not Applicable")]
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.barplot(x="ENSG00000155636", y="Final Subject Group - Bowser lab defined", data=df_ALS_HC,capsize=0.5)
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.boxplot(x="ENSG00000155636", y="Site of Motor Onset", data=df_onset)
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.boxplot(x="ENSG00000155636", y="Sex", data=df_onset)
+
+x = sns.boxplot(x="ENSG00000155636", y="Final Subject Group - Bowser lab defined", data=df_ALS_HC)
+
+sns.swarmplot(x="ENSG00000155636", y="Final Subject Group - Bowser lab defined", data=df_ALS_HC)
+
+sns.set_style('darkgrid')
+sns.distplot(df_ALS_HC['ENSG00000155636'])
+
+#gene ID-rlogexp
+gene_Exp=rlogexp.loc[rlogexp['gene'] == 'ENSG00000155636']
+RBM45=gene_Exp.T
+RBM45.columns= RBM45.iloc[0]
+RBM45=RBM45.drop(['gene'])
+
+RBM45=RBM45.reset_index()
+RBM45.columns=['ExternalSampleId', 'ENSG00000155636'];
+
+df=pd.merge(RBM45,met, how="outer", on="ExternalSampleId")
+df.loc[df['Age at Death'] <= "55", 'Age-class'] = '<=55' 
+df.loc[(df['Age at Death'] > "55") & (df['Age at Death'] < "60"), 'Age-class'] = '55-60'
+df.loc[(df['Age at Death'] > "60") & (df['Age at Death'] < "65"), 'Age-class'] = '60-65' 
+df.loc[(df['Age at Death'] > "65") & (df['Age at Death'] < "70"), 'Age-class'] = '65-70' 
+df.loc[df['Age at Death'] >= "70", 'Age-class'] = '>=70'
+
+df_ALS_HC=df[(df["Final Subject Group - Bowser lab defined"] == "ALS")|(df["Final Subject Group - Bowser lab defined"] == "Non-Neurologic Control")]
+df_ALS=df[df["Final Subject Group - Bowser lab defined"] == "ALS"]
+df_HC=df[df["Final Subject Group - Bowser lab defined"] == "Non-Neurological Control"]
+df_onset = df_ALS[(df_ALS["Site of Motor Onset"] != "Unknown")&(df_ALS["Site of Motor Onset"] != "Not Applicable")]
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.barplot(x="ENSG00000155636", y="Final Subject Group - Bowser lab defined", data=df_ALS_HC,capsize=0.5)
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.barplot(x="ENSG00000155636", y="Site of Motor Onset", data=df_onset,capsize=0.5)
+
+x = sns.boxplot(x="ENSG00000155636", y="Final Subject Group - Bowser lab defined", data=df_ALS_HC)
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.barplot(x="ENSG00000155636", y="Sex", data=df_onset,capsize=0.5)
+
+sns.set_style('darkgrid')
+sns.distplot(df_ALS_HC['ENSG00000155636'])
+
+#gene ID-vstexp
+gene_Exp=vstexp.loc[vstexp['gene'] == 'ENSG00000155636']
+RBM45=gene_Exp.T
+RBM45.columns= RBM45.iloc[0]
+RBM45=RBM45.drop(['gene'])
+
+RBM45=RBM45.reset_index()
+RBM45.columns=['ExternalSampleId', 'ENSG00000155636'];
+
+df=pd.merge(RBM45,met, how="outer", on="ExternalSampleId")
+df.loc[df['Age at Death'] <= "55", 'Age-class'] = '<=55' 
+df.loc[(df['Age at Death'] > "55") & (df['Age at Death'] < "60"), 'Age-class'] = '55-60'
+df.loc[(df['Age at Death'] > "60") & (df['Age at Death'] < "65"), 'Age-class'] = '60-65' 
+df.loc[(df['Age at Death'] > "65") & (df['Age at Death'] < "70"), 'Age-class'] = '65-70' 
+df.loc[df['Age at Death'] >= "70", 'Age-class'] = '>=70'
+
+df_ALS_HC=df[(df["Final Subject Group - Bowser lab defined"] == "ALS")|(df["Final Subject Group - Bowser lab defined"] == "Non-Neurologic Control")]
+df_ALS=df[df["Final Subject Group - Bowser lab defined"] == "ALS"]
+df_HC=df[df["Final Subject Group - Bowser lab defined"] == "Non-Neurological Control"]
+df_onset = df_ALS[(df_ALS["Site of Motor Onset"] != "Unknown")&(df_ALS["Site of Motor Onset"] != "Not Applicable")]
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.barplot(x="ENSG00000155636", y="Final Subject Group - Bowser lab defined", data=df_ALS_HC,capsize=0.5)
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.barplot(x="ENSG00000155636", y="Site of Motor Onset", data=df_onset,capsize=0.5)
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.barplot(x="ENSG00000155636", y="Sex", data=df_onset,capsize=0.5)
+
+x = sns.boxplot(x="ENSG00000155636", y="Final Subject Group - Bowser lab defined", data=df_ALS_HC)
+
+sns.set_style('darkgrid')
+sns.distplot(df_ALS_HC['ENSG00000155636'])
+
+plt.figure(figsize=(10,8))
+sns.set_theme(style="white")
+ax = sns.boxplot(x="ENSG00000155636", y="Age-class", data=df)
+
